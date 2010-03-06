@@ -81,8 +81,8 @@ class IRCBot(SingleServerIRCBot):
         if len(args) == 2:
             target = args[0]
             msgs = args[1]
-        if type(msgs) != list: msgs = [str(msgs)]
-        for msg in msgs: self.connection.privmsg(target, self.format_message(msg))
+        for msg in [str(msgs)] if type(msgs) != list else msgs:
+            self.send_queue.append((target, msg))
 
     def send_notice(self, target, msg, **tokens):
         msgs = msg
@@ -90,6 +90,10 @@ class IRCBot(SingleServerIRCBot):
         for msg in msgs: self.connection.notice(target, self.format_message(msg))
     
     def process_once(self):
+        if self.send_queue:
+            target, msg = self.send_queue.pop(0)
+            self.connection.privmsg(target, msg)
+        
         for user in self.hub.remote_users:
             if not user.outgoing: continue
             print "sending msg to [%s]: %r" % (user.nick, user.outgoing)
