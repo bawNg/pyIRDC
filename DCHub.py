@@ -522,9 +522,7 @@ class DCHub(object):
             except KeyError:
                 continue
             try:
-                print "reading..."
                 data = user.socket.recv(self.buffersize)
-                print "read."
                 if not data:
                     self.log.log(self.loglevels['userdisconnect'], "Client disconnected: %s" % user.idstring)
                     self.removeuser(user)

@@ -91,7 +91,6 @@ class IRCBot(SingleServerIRCBot):
     
     def process_once(self):
         for user in self.hub.remote_users:
-            continue
             if not user.outgoing: continue
             print "sending msg to [%s]: %r" % (user.nick, user.outgoing)
             while len(user.outgoing) > 0:
@@ -100,6 +99,7 @@ class IRCBot(SingleServerIRCBot):
                 user.outgoing = user.outgoing[len(msg):]
             
         self.ircobj.process_once(0.15)
+    
     @property
     def nickname(): return self.connection.get_nickname()
     ### Events ###
