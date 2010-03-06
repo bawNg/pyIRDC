@@ -1835,12 +1835,14 @@ class DCHub(object):
             nick = user
         else:
             nick = user.nick
-        if self.handleslashme and (message.startswith('/me') or message.startswith('+me')):
+        if message.startswith('/me') or message.startswith('+me'):
             #message = '* %s%s|' % (nick, message[3:])
-            self.irc.send_message("\x01ACTION%s\x01" % message[3:])
+            self.local_user.sendmessage("* %s%s|" % (nick, message[3:]))
+            self.irc.send_message(self.irc.chat_channel, "\x01ACTION%s\x01" % message[3:])
         else:
             #message = '<%s> %s|' % (nick, message)
-            self.irc.send_message(message)
+            self.local_user.sendmessage("<%s> %s|" % (nick, message))
+            self.irc.send_message(self.irc.chat_channel, message)
         #for user in self.users.itervalues():
         #    user.sendmessage(message)
         
@@ -1869,7 +1871,7 @@ class DCHub(object):
             receiver.processcommand(sender, message)
         else:
             print "not!"
-            if self.handleslashme and (message.startswith('/me') or message.startswith('+me')):
+            if message.startswith('/me') or message.startswith('+me'):
                 #message = '* %s%s|' % (nick, message[3:])
                 message = "\x01ACTION%s\x01" % (message[3:])
             else:
