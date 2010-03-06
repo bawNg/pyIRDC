@@ -108,7 +108,8 @@ class IRCBot(SingleServerIRCBot):
             print e.source(), e.eventtype().upper(), e.target(), e.arguments()
 
     def on_welcome(self, c, e):
-        c.join(self.channel)
+        c.join(self.channel, "$bong|")
+        c.join(self.chat_channel)
     
     def on_nicknameinuse(self, c, e):
         c.nick(c.get_nickname() + "_")

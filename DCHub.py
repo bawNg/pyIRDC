@@ -253,7 +253,7 @@ class DCHub(object):
             del self.kwargs['oldhub']
         else:
             self.setuphub()
-            self.irc = IRCBot.IRCBot("#pyIRDC", "pyIRDC", "xiphos.shadowfire.org", 6667, self)
+            self.irc = IRCBot.IRCBot("##psytrance", "pyIRDC", "xiphos.shadowfire.org", 6667, self)
             self.local_user = None
             self.remote_users = []
         
