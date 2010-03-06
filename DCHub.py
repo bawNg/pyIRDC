@@ -851,7 +851,7 @@ class DCHub(object):
         
         self.local_user = user
         self.irc._nickname, self.irc._realname = user.nick, user.nick
-        print "Connecting to IRC..."
+        self.send_message("Connecting to IRC server...|")
         self.irc._connect()
         
     def logtimes(self, functionname, loglevel, warningtime, warninglevel = logging.WARNING):
