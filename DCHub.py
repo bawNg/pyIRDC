@@ -1866,17 +1866,11 @@ class DCHub(object):
             nick = sender.nick
         
         print "[give_PrivateMessage] sender=%s receiver=%s" % (nick, receiver)
-        if hasattr(receiver, 'isDCHubBot') and not hasattr(sender, 'isDCHubBot') and not isinstance(sender, str) and not isinstance(receiver, DCHubRemoteUser):
-            print "bot! %r" % receiver
+        
+        if not hasattr(receiver, 'is_hub') and hasattr(receiver, 'isDCHubBot') and not hasattr(sender, 'isDCHubBot') and not isinstance(sender, str):
             receiver.processcommand(sender, message)
         else:
-            print "not!"
-            if message.startswith('/me') or message.startswith('+me'):
-                #message = '* %s%s|' % (nick, message[3:])
-                message = "\x01ACTION%s\x01" % (message[3:])
-            else:
-                pass #message = '<%s> %s|' % (nick, message)
-            #receiver.sendmessage('$To: %s From: %s $%s|' % (receiver.nick, nick, message))
+            if message.startswith('/me') or message.startswith('+me'): message = "\x01ACTION%s\x01" % (message[3:])
             receiver.sendmessage(message)
             
     def give_SpamNotification(self, user, args):
