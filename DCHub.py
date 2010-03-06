@@ -233,6 +233,7 @@ class DCHubRemoteUser(DCHubBot):
     
     def sendmessage(self, message):
         '''Place a message in the outgoing message buffer for the user'''
+        if not self.is_hub and message.startswith("$"): return
         if not self.ignoremessages:
             self.outgoing += message
             self.lastcommandtime = time.time()
