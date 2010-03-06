@@ -209,7 +209,7 @@ class DCHubBot(DCHubUser):
         pass
 
 class DCHubRemoteUser(DCHubBot):
-    def __init__(self, hub, nick, op=False):
+    def __init__(self, hub, nick, is_hub=False, is_op=False):
         DCHubUser.__init__(self)
         self.hub = hub
         self.nick = nick
@@ -217,7 +217,8 @@ class DCHubRemoteUser(DCHubBot):
         self.idstring = 'DCHubRemoteUser/%s' % nick
         self.myinfo = myinfoformat % (self.nick, self.description, self.tag, self.speed, chr(self.speedclass), self.email, self.sharesize)
         self.visible = True
-        self.op = op
+        self.is_op = is_op
+        self.is_hub = is_hub
         self.outgoing = ""
         # Hub functions to wrap or replace
         self.replace, self.execbefore, self.execafter = {}, {}, {}

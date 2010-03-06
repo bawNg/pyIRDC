@@ -4,12 +4,65 @@ from ircbot import SingleServerIRCBot
 from irclib import nm_to_n, nm_to_h, irc_lower, ip_numstr_to_quad, ip_quad_to_numstr
 from DCHub import DCHubRemoteUser
 
+class IRCChannelUser(object):
+    def __init__(self, nick, **args):
+        self.nick = nick
+        self.is_hub = False
+        self.is_op = False
+        for key, value in args.items():
+            setattr(self, key, value)
+        
+    def __eq__(self, other):
+        if isinstance(other, basestring):
+            return self.nick.lower() == other.lower()
+        elif isinstance(other, IRCChannelUser):
+            return self.nick.lower() == other.nick.lower()
+        else:
+            print "[IRCChannelUser:__eq__] got unknown object type: %r" % other
+            return False
+    
+    def __str__(self):
+        return self.nick
+
+class IRCChannelUsers(object):
+    def __init__(self):
+        self.users = []
+        
+    def append(self, nick, **args):
+        if IRCChannelUser(nick) in self.users: return False
+        self.users.append(IRCChannelUser(nick, **args))
+        print "[IRCChannelUsers] Added user: %r" % nick
+        return True
+    
+    def remove(self, nick):
+        if IRCChannelUser(nick) not in self: return False
+        self.users.remove(IRCChannelUser(nick))
+        print "[IRCChannelUsers] Removed user: %r" % nick
+        return True
+    
+    def __contains__(self, nick):
+        return IRCChannelUser(nick) in self.users
+    
+    def __getitem__(self, index):
+        if isinstance(index, basestring):
+            for user in self.users:
+                if user == index: return user
+            return None
+        return self.users[index]
+
+    def __len__(self):
+        return len(self.users)
+
+    def __str__(self):
+        return "<'IRCChannelUsers' %s>" % self.users
+
 class IRCBot(SingleServerIRCBot):
     def __init__(self, channel, nickname, server, port=6667, hub=None):
         SingleServerIRCBot.__init__(self, [(server, port)], nickname, nickname)
         self.connection.add_global_handler("all_events", self.on_all_events, -100)
         self.channel = channel
-        self.channel_admins = []
+        self.chat_channel = "#pyIRDC"
+        self.channel_users = IRCChannelUsers()
         self.send_queue = []
         self.hub = hub
     
@@ -64,17 +117,17 @@ class IRCBot(SingleServerIRCBot):
         pass
     
     def on_join(self, c, e):
-        self.add_user_to_hub(nm_to_n(e.source()))
+        if IRCChannelUser(nm_to_n(e.source())) == c.get_nickname(): return
+        if e.target() == self.channel:
+            self.channel_users.append(name, is_hub=True)
+            self.add_user_to_hub(nm_to_n(e.source()), True)
     
     def on_part(self, c, e):
+        if e.target() != self.channel: return
         self.on_quit(c, e)
     
     def on_quit(self, c, e):
         self.remove_user_from_hub(nm_to_n(e.source()))
-        for n in self.channel_admins:
-            if n.lower() == nm_to_n(e.source()).lower():
-                self.channel_admins.remove(n)
-                break
     
     def on_privmsg(self, c, e):
         pass
@@ -82,28 +135,36 @@ class IRCBot(SingleServerIRCBot):
     def on_pubmsg(self, c, e):
         nick = nm_to_n(e.source())
         msg = e.arguments()[0]
-        self.hub.send_message("<%s> %s|" % (nick, msg))
+        if e.target() == self.channel:
+            pass
+        elif e.target() == self.chat_channel:
+            self.hub.send_message("<%s> %s|" % (nick, msg))
     
     def on_action(self, c, e):
+        if self.chat_channel and e.target() != self.chat_channel: return
         nick = nm_to_n(e.source())
-        bot = self.hub.get_remote_user(nick)
-        if not bot:
-            print "[on_action] got NULL user"
+        if not self.hub.local_user:
+            print "[on_action] got NULL self.hub.localuser!"
             return
-        bot.sendmessage("* %s%s|" % (nick, e.arguments()[0]))
+        self.hub.local_user.sendmessage("* %s %s|" % (nick, e.arguments()[0]))
     
     def on_namreply(self, c, e):
-        if e.arguments()[1] != self.channel: return
         for name in e.arguments()[2].split():
-            if name.startswith('~') or name.startswith('&') or \
-               name.startswith('@') or name.startswith('%'):
-                self.channel_admins.append(name[1:])
-                self.add_user_to_hub(name[1:], True)
-                continue
-            self.add_user_to_hub(name)
-
+            is_op = name[0] in ['~', '&', '@', '%']
+            name = name[1:] if is_op or name.startswith('+') else name
+            if IRCChannelUser(name) == c.get_nickname(): continue
+            if e.arguments()[1] == self.channel:
+                print "[management] appending [%s] to channel_users..." % name
+                self.channel_users.append(name, is_hub=(not is_op))
+            
+            elif e.arguments()[1] == self.chat_channel:
+                print "[chat_channel] checking [%s]..." % name
+                if not self.channel_users.append(name, is_op=is_op):
+                    # update is_op if user was already in management channel
+                    self.channel_users[name].is_op = is_op
+                self.add_user_to_hub(name, self.channel_users[name].is_hub, is_op)
+    
     def on_mode(self, c, e):
-        if e.target() != self.channel: return
         nick = nm_to_n(e.source())
         if nick == c.get_nickname(): return
         args = e.arguments()[0]
@@ -117,8 +178,13 @@ class IRCBot(SingleServerIRCBot):
                     break
                 
                 bot = self.hub.get_remote_user(e.arguments()[param])
-                if add and not e.arguments()[param].lower() in [n.lower() for n in self.channel_admins]:
-                    self.channel_admins.append(e.arguments()[param])
+                if add and not self.channel_users[e.arguments()[param]].is_op:
+                    if e.target() == self.channel:
+                        # user has been given ops in management channel
+                        self.channel_users[e.arguments()[param]].is_hub = False
+                        continue
+                    
+                    self.channel_users[e.arguments()[param]].is_op = True
                     if bot:
                         self.hub.ops[bot.nick] = bot
                         self.hub.giveOpList()
@@ -127,13 +193,10 @@ class IRCBot(SingleServerIRCBot):
                 # nick is channel admin
                 if add: continue
                 # remove nick from channel admins
-                for n in self.channel_admins:
-                    if n.lower() == e.arguments()[param].lower():
-                        self.channel_admins.remove(n)
-                        if bot:
-                            del self.hub.ops[bot.nick]
-                            self.hub.giveOpList()
-                        break
+                self.channel_users[e.arguments()[param]].is_op = False
+                if bot:
+                    del self.hub.ops[bot.nick]
+                    self.hub.giveOpList()
             param += 1
 
     def on_whoreply(self, c, e):
@@ -143,8 +206,8 @@ class IRCBot(SingleServerIRCBot):
         nick = e.arguments()[0]
     
     ### Wrapper methods ###
-    def add_user_to_hub(self, nick, op=False):
-        bot = DCHubRemoteUser(self.hub, nick, op)
+    def add_user_to_hub(self, nick, is_hub=False, is_op=False):
+        bot = DCHubRemoteUser(self.hub, nick, is_hub, is_op)
         # Make bot appear as a user to the hub
         if bot.nick in self.hub.nicks: bot.nick = bot.nick + "_"
         self.hub.nicks[bot.nick] = bot
@@ -152,7 +215,7 @@ class IRCBot(SingleServerIRCBot):
         print 'RemoteUserBot logged in: %s' % bot.idstring
         self.hub.giveHello(bot, newuser=True)
         self.hub.giveMyINFO(bot)
-        if op:
+        if is_op:
             self.hub.ops[bot.nick] = bot
             self.hub.giveOpList()
         self.hub.remote_users.append(bot)
