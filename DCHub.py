@@ -4,7 +4,7 @@ import os, signal, socket, sys, time, logging, errno
 from logging.handlers import SysLogHandler
 from ConfigParser import RawConfigParser
 from select import select
-from IRCBot import IRCBot
+import IRCBot
 
 if os.name == 'posix':
     try: 
@@ -251,7 +251,7 @@ class DCHub(object):
             del self.kwargs['oldhub']
         else:
             self.setuphub()
-            self.irc = IRCBot("#pyIRDC", "pyIRDC", "xiphos.shadowfire.org", 6667, self)
+            self.irc = IRCBot.IRCBot("#pyIRDC", "pyIRDC", "xiphos.shadowfire.org", 6667, self)
             self.local_user = None
             self.remote_users = []
         
