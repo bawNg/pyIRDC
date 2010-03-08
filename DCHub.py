@@ -1002,6 +1002,10 @@ class DCHub(object):
         user.loggedin = False
         user.op = False
         
+        if user == self.local_user:
+            self.irc.disconnect("User exited")
+            for bot in self.remote_users: self.removeuser(bot)
+
     def setupdefaults(self, **kwargs):
         '''Setup default values for hub variables'''
         self.__class__.id += 1
