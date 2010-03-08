@@ -1020,13 +1020,13 @@ class DCHub(object):
             execbefore execafter replacedfunctions wrappedfunctions 
             reloadonexit bots kwargs version'''.split())
         self.port = 411
-        self.ip = ''
+        self.ip = '127.0.0.1'
         self.bindinglocations = []
         self.listensocks = {}
         self.debug = True
         self.stop = False
-        self.handleslashme = False
-        self.notifyspammers = False
+        self.handleslashme = True
+        self.notifyspammers = True
         self.reloadonexit = False
         self.kwargs = kwargs
         self.badchars = ''.join([chr(i) for i in range(9) + range(14,32) + [11, 12, 127]])
@@ -1048,8 +1048,8 @@ class DCHub(object):
             GetNickList Search SR ConnectToMe RevConnectToMe UserIP'''.split())
         self.validopcommands = set('OpForceMove Kick Close ReloadBots'.split())
         self.lockstring = 'EXTENDEDPROTOCOLABCABCABCABCABCABC'
-        self.privatekeystring = 'py-dchub-%s--' % self.version
-        self.name = 'py-dchub'
+        self.privatekeystring = 'pyIRDC-%s--' % self.version
+        self.name = 'pyIRDC'
         self.hubredirectwhenfull = ''
         self.welcome = ''
         # Incoming socket buffer size
@@ -1885,7 +1885,7 @@ class DCHub(object):
         
     def give_WelcomeMessage(self, user):
         '''Give the user the welcome message for the hub'''
-        message = 'This hub is running version %s of pyIRDC.\r\n%s' % (self.version, self.welcome)
+        message = 'This hub is running version %s of %s.\r\n%s' % (self.version, self.name, self.welcome)
         user.sendmessage('<Hub-Security> %s|' % message)
         
     def giveBadPass(self, user):
