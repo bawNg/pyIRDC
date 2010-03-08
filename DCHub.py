@@ -851,6 +851,8 @@ class DCHub(object):
         
         self.local_user = user
         self.irc._nickname, self.irc._realname = user.nick, user.nick
+#        print 'LOCAL_USER: %r' % self.local_user.__class__
+#        print 'USER: %r' % user.__class__
         self.send_message("Connecting to IRC server...|")
         self.irc._connect()
         

@@ -135,7 +135,12 @@ class IRCBot(SingleServerIRCBot):
         self.remove_user_from_hub(nm_to_n(e.source()))
     
     def on_privmsg(self, c, e):
-        pass
+        nick = nm_to_n(e.source())
+        targ = nm_to_n(e.target())
+        msg = e.arguments()[0]
+        print "[on_privmsg] received '%s' from '%s' for %s" % (msg, nick, targ)
+        message = '$To: %s From: %s $<%s> %s|' % (targ, nick, nick, msg)
+        self.hub.local_user.sendmessage(message)
     
     def on_pubmsg(self, c, e):
         nick = nm_to_n(e.source())
