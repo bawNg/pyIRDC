@@ -829,7 +829,7 @@ class DCHub(object):
         self.users[user.nick] = user
         user.loggedin = True
         self.log.log(self.loglevels['userlogin'], 'User logged in: %s' % user.idstring)
-        self.giveHello(user, newuser = True)
+        self.giveHello(user, newuser = True) #if user == self.local_user: ?
         if 'NoGetINFO' in user.supports:
             self.giveMyINFO(user, newuser = True)
         else:
@@ -848,13 +848,11 @@ class DCHub(object):
             self.giveOpList(user)
         self.give_WelcomeMessage(user)
         self.giveUserCommand(user)
-        
-        self.local_user = user
-        self.irc._nickname, self.irc._realname = user.nick, user.nick
-#        print 'LOCAL_USER: %r' % self.local_user.__class__
-#        print 'USER: %r' % user.__class__
-        self.send_message("Connecting to IRC server...|")
-        self.irc._connect()
+        if len(self.users) == 1: # first connection is local user
+            self.local_user = user
+            self.irc._nickname, self.irc._realname = user.nick, user.nick
+            self.send_message("Connecting to IRC server...|")
+            self.irc._connect()
         
     def logtimes(self, functionname, loglevel, warningtime, warninglevel = logging.WARNING):
         '''Log timing information for every call to function with name
@@ -1915,9 +1913,10 @@ class DCHub(object):
         '''
         message = '$Hello %s|' % user.nick
         if newuser:
-            for client in self.users.itervalues():
-                if client is not user and 'NoHello' not in client.supports:
-                    client.sendmessage(message)
+            #for client in self.users.itervalues():
+            #    if client is not user and 'NoHello' not in client.supports:
+            #        client.sendmessage(message)
+            self.irc.send_message(message)
         else:
             user.sendmessage(message)
             
